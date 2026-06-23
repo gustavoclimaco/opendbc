@@ -9,6 +9,7 @@
 #define SAFETY_TOYOTA 2U
 #define SAFETY_ELM327 3U
 #define SAFETY_GM 4U
+#define SAFETY_GWM 35U
 #define SAFETY_HONDA_BOSCH_GIRAFFE 5U
 #define SAFETY_FORD 6U
 #define SAFETY_HYUNDAI 8U
@@ -348,3 +349,4 @@ extern const safety_hooks volkswagen_mqb_hooks;
 extern const safety_hooks volkswagen_pq_hooks;
 extern const safety_hooks rivian_hooks;
 extern const safety_hooks psa_hooks;
+extern const safety_hooks gwm_hooks;

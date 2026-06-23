@@ -12,6 +12,7 @@
 #include "opendbc/safety/modes/toyota.h"
 #include "opendbc/safety/modes/tesla.h"
 #include "opendbc/safety/modes/gm.h"
+#include "opendbc/safety/modes/gwm.h"
 #include "opendbc/safety/modes/ford.h"
 #include "opendbc/safety/modes/hyundai.h"
 #include "opendbc/safety/modes/chrysler.h"
@@ -413,6 +414,7 @@ int set_safety_hooks(uint16_t mode, uint16_t param) {
     {SAFETY_RIVIAN, &rivian_hooks},
     {SAFETY_TESLA, &tesla_hooks},
     {SAFETY_HYUNDAI_CANFD, &hyundai_canfd_hooks},
+    {SAFETY_GWM, &gwm_hooks}, 
 #ifdef ALLOW_DEBUG
     {SAFETY_CHRYSLER_CUSW, &chrysler_cusw_hooks},
     {SAFETY_PSA, &psa_hooks},
