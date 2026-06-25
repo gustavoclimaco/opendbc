@@ -115,13 +115,12 @@ def create_wheel_touch(packer, CAN: CanBus, eps_stock_values, ea_simulated_torqu
   return packer.make_can_msg("RX_STEER_RELATED", CAN.camera, values)
 
 
-def create_buttons_command(packer, CAN: CanBus, counter, stock_msg, cancel_command=False):
+def create_buttons_command(packer, CAN: CanBus, counter, stock_msg, cancel_command=False, resume_command=False):
   values = {s: stock_msg[s] for s in [
     "STEERING_ANGLE",
     "STEERING_DIRECTION",
     "STEERING_RATE",
     "RATE_DIRECTION",
-    "AP_ENABLE_COMMAND",
     "AP_DECREASE_SPEED_COMMAND",
     "AP_INCREASE_SPEED_COMMAND",
     "AP_REDUCE_DISTANCE_COMMAND",
@@ -130,6 +129,9 @@ def create_buttons_command(packer, CAN: CanBus, counter, stock_msg, cancel_comma
 
   values |= {
     "AP_CANCEL_COMMAND": stock_msg["AP_CANCEL_COMMAND"] or cancel_command,
+    # resume_command simulates pressing the AP stalk rearward (AP_ENABLE_COMMAND)
+    # to re-engage the ACC ECU after a standstill — Stop & Go resume pulse.
+    "AP_ENABLE_COMMAND": 1 if resume_command else stock_msg["AP_ENABLE_COMMAND"],
     "COUNTER": counter,
   }
 
