@@ -10,6 +10,19 @@ LongCtrlState = structs.CarControl.Actuators.LongControlState
 
 MAX_USER_TORQUE = 100  # 1.0 Nm
 
+# Stop & Go resume pulse configuration.
+# The Haval H6 GT has no native Stop & Go: when the car comes to a full stop
+# the ACC ECU deactivates (CRUISE_STATE_2 → 0) and waits for a "resume" input.
+# We simulate pressing the AP_ENABLE_COMMAND stalk signal for a short pulse to
+# re-engage the ACC ECU automatically whenever openpilot wants to start moving.
+#
+# RESUME_PULSE_FRAMES: how many 50 Hz frames to hold AP_ENABLE_COMMAND = 1.
+#   10 frames = ~200 ms. Increase to 15–20 if the car ignores the first pulse.
+# RESUME_ACCEL_THRESHOLD: minimum desired accel (m/s²) to trigger resume.
+#   Use a small positive value to avoid spurious triggers from accel noise.
+RESUME_PULSE_FRAMES = 10
+RESUME_ACCEL_THRESHOLD = 0.05  # m/s²
+
 
 class CarController(CarControllerBase):
   def __init__(self, dbc_names, CP, CP_SP=None):
@@ -20,6 +33,10 @@ class CarController(CarControllerBase):
     self.apply_torque_last = 0
     self.CAN = gwmcan.CanBus(CP)
     self.accel = 0.0
+
+    # Stop & Go state
+    self.resume_required = False
+    self.resume_counter = 0   # frames left to pulse AP_ENABLE_COMMAND
 
   def update(self, CC, CC_SP, CS, now_nanos):
     can_sends = []
@@ -38,6 +55,46 @@ class CarController(CarControllerBase):
       ))
 
     if self.frame % 2 == 0:  # 50 Hz
+
+      # ── Stop & Go Resume Logic ─────────────────────────────────────────────
+      # Trigger a resume pulse when ALL of the following are true:
+      #   1. OP owns longitudinal control (longActive)
+      #   2. Car is at a full standstill (vEgo ≈ 0)
+      #   3. Planner wants to start moving (actuators.accel above threshold)
+      #   4. ACC ECU is in standstill-wait state (cruise_state_2 == 0)
+      #   5. No ongoing resume pulse already running
+      send_resume = False
+      if self.CP.openpilotLongitudinalControl:
+        accel_desired = actuators.accel if CC.longActive else 0.0
+        acc_in_standstill = (CS.cruise_state_2 == 0)
+
+        should_trigger = (
+          CC.longActive
+          and CS.out.standstill
+          and accel_desired > RESUME_ACCEL_THRESHOLD
+          and acc_in_standstill
+          and not self.resume_required
+        )
+
+        if should_trigger:
+          self.resume_required = True
+          self.resume_counter = RESUME_PULSE_FRAMES
+
+        # Send pulse while counter > 0
+        if self.resume_required:
+          if self.resume_counter > 0:
+            send_resume = True
+            self.resume_counter -= 1
+          else:
+            self.resume_required = False
+
+        # Abort if car moved or ACC re-engaged (no longer needed)
+        if not CS.out.standstill or not acc_in_standstill:
+          if not send_resume:  # let current pulse finish naturally
+            self.resume_required = False
+            self.resume_counter = 0
+      # ──────────────────────────────────────────────────────────────────────
+
       # Steer command
       new_torque = int(round(actuators.torque * self.params.STEER_MAX))
       apply_torque = apply_meas_steer_torque_limits(new_torque, self.apply_torque_last, CS.out.steeringTorqueEps, self.params)
@@ -81,6 +138,19 @@ class CarController(CarControllerBase):
           accel=accel,
           active=CC.longActive,
           standstill=standstill,
+        ))
+
+      # Resume command: inject AP_ENABLE_COMMAND pulse into the stalk message.
+      # We send this as a separate button frame so it doesn't interfere with the
+      # normal stalk passthrough. Uses the current counter + 1 to be distinct.
+      if send_resume:
+        resume_counter = (CS.steer_and_ap_stalk_msg['COUNTER'] + 1) % 16
+        can_sends.append(gwmcan.create_buttons_command(
+          self.packer,
+          self.CAN,
+          resume_counter,
+          CS.steer_and_ap_stalk_msg,
+          resume_command=True,
         ))
 
     if self.frame % 5 == 0:  # 20 Hz
