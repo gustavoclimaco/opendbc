@@ -24,6 +24,9 @@ class CarState(CarStateBase):
     self.main_on = False
     self.steer_fault_temporary_counter = 0
 
+    # Stop & Go: track cruise state to distinguish standstill from real fault
+    self.cruise_state_2 = 0
+
   def update(self, can_parsers) -> structs.CarState:
     cp = can_parsers[Bus.main]
     cp_cam = can_parsers[Bus.cam]
@@ -42,7 +45,24 @@ class CarState(CarStateBase):
       cp.vl["WHEEL_SPEEDS"]["REAR_RIGHT_WHEEL_SPEED"]
     )
 
-    ret.accFaulted = bool(cp_cam.vl["ACC"]["CRUISE_STATE_2"] == 0)
+    # Stop & Go fix:
+    # The Haval H6 GT has no native Stop & Go — the ACC module deactivates
+    # (CRUISE_STATE_2 → 0) whenever the car stops. This is expected behaviour,
+    # NOT a real ACC fault. We must NOT propagate this as accFaulted, otherwise
+    # openpilot drops longitudinal control at every stop and can never resume.
+    #
+    # Real faults (hardware/comms errors) will show up through steerFault paths
+    # and other signals. For now we keep accFaulted = False while openpilot long
+    # is in control; the resume pulse in carcontroller will re-engage the ACC ECU.
+    self.cruise_state_2 = int(cp_cam.vl["ACC"]["CRUISE_STATE_2"])
+
+    if self.CP.openpilotLongitudinalControl:
+      # While OP owns longitudinal: never fault on standstill ACC deactivation
+      ret.accFaulted = False
+    else:
+      # Stock ACC path: honour the original logic
+      ret.accFaulted = self.cruise_state_2 == 0
+
     ret.cruiseState.speed = cp_cam.vl["ACC"]["ACC_SPEED_SELECTION"] * CV.KPH_TO_MS
     if not self.CP.openpilotLongitudinalControl:
       ret.cruiseState.speed = -1
