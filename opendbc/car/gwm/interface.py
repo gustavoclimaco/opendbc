@@ -80,11 +80,27 @@ class CarInterface(CarInterfaceBase):
       ret.openpilotLongitudinalControl = True
       ret.safetyConfigs[-1].safetyParam |= GwmSafetyFlags.LONG_CONTROL.value
 
+      # Stop & Go: enabled so openpilot holds at standstill and resumes.
+      # The Haval H6 GT has no native S&G — resume is handled in carcontroller
+      # via an AP_ENABLE_COMMAND pulse when the planner wants to start moving.
+      ret.stopAndGo = True
+
       ret.longitudinalActuatorDelay = 0.25
+
+      # vEgoStopping / vEgoStarting: speed thresholds (m/s) at which OP
+      # transitions to/from the stopping state. Keep them tight so the car
+      # actually holds position instead of creeping.
       ret.vEgoStopping = 0.25
       ret.vEgoStarting = 0.25
+
+      # stopAccel: accel command sent while holding at standstill (m/s²).
+      # More negative = firmer hold. -0.75 is conservative; tune down to
+      # -1.0 if the car rolls on slopes.
       ret.stopAccel = -0.75
+
+      # stoppingDecelRate: how fast OP ramps decel to stopAccel (m/s³).
       ret.stoppingDecelRate = 0.75
+
       ret.longitudinalTuning.kiBP = [0.]
       ret.longitudinalTuning.kiV = [0.4]
 
