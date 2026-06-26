@@ -85,7 +85,6 @@ class CarInterface(CarInterfaceBase):
       # via an AP_ENABLE_COMMAND pulse when the planner wants to start moving.
       ret.autoResumeSng = True
 
-
       ret.longitudinalActuatorDelay = 0.25
 
       # vEgoStopping / vEgoStarting: speed thresholds (m/s) at which OP
@@ -108,7 +107,7 @@ class CarInterface(CarInterfaceBase):
     return ret
 
   @staticmethod
-    def _get_params_sp(ret: structs.CarParams, car_params_sp, candidate, fingerprint, car_fw, alpha_long, is_release, docs):    
+  def _get_params_sp(ret: structs.CarParams, car_params_sp, candidate, fingerprint, car_fw, alpha_long, is_release, docs):
     # SunnyPilot-specific parameters extension.
     # For now, GWM has no SP-specific flags, but the hook must exist
     # so the SP framework can call it without AttributeError.
