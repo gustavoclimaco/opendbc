@@ -11,7 +11,7 @@ TransmissionType = structs.CarParams.TransmissionType
 
 class CarState(CarStateBase):
   def __init__(self, CP, CP_SP=None):
-    super().__init__(CP)
+    super().__init__(CP, CP_SP)
     self.CP_SP = CP_SP
     self.steer_and_ap_stalk_msg = {}
     self.eps_stock_values = {}
