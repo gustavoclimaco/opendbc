@@ -83,7 +83,8 @@ class CarInterface(CarInterfaceBase):
       # Stop & Go: enabled so openpilot holds at standstill and resumes.
       # The Haval H6 GT has no native S&G — resume is handled in carcontroller
       # via an AP_ENABLE_COMMAND pulse when the planner wants to start moving.
-      ret.stopAndGo = True
+      ret.autoResumeSng = True
+
 
       ret.longitudinalActuatorDelay = 0.25
 
