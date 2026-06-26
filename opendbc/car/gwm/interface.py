@@ -13,7 +13,7 @@ class CarInterface(CarInterfaceBase):
   CarController = CarController
 
   def __init__(self, CP, CP_SP=None):
-    super().__init__(CP)
+    super().__init__(CP, CP_SP)
     self.CP_SP = CP_SP
     self.lat_active = False
     self.isEPSobeying = True
@@ -108,7 +108,7 @@ class CarInterface(CarInterfaceBase):
     return ret
 
   @staticmethod
-def _get_params_sp(ret: structs.CarParams, car_params_sp, candidate, fingerprint, car_fw, alpha_long, is_release, docs):
+    def _get_params_sp(ret: structs.CarParams, car_params_sp, candidate, fingerprint, car_fw, alpha_long, is_release, docs):    
     # SunnyPilot-specific parameters extension.
     # For now, GWM has no SP-specific flags, but the hook must exist
     # so the SP framework can call it without AttributeError.
