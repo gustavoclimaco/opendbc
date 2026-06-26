@@ -26,7 +26,7 @@ RESUME_ACCEL_THRESHOLD = 0.05  # m/s²
 
 class CarController(CarControllerBase):
   def __init__(self, dbc_names, CP, CP_SP=None):
-    super().__init__(dbc_names, CP)
+    super().__init__(dbc_names, CP, CP_SP)
     self.CP_SP = CP_SP
     self.params = CarControllerParams(self.CP)
     self.packer = CANPacker(dbc_names[Bus.main])
